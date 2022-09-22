@@ -32,5 +32,4 @@ const createReviews = async function (req, res) {
 
     res.status(201).send({ status: true, message: "Review created", data: createReview })
 }
-
 module.exports = { createReviews }

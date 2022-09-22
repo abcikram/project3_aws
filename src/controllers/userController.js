@@ -81,6 +81,4 @@ const userLogin = async function (req, res) {
         res.status(500).send({ status: false, Error: err.message });
     }
 }
-
-
 module.exports = { userLogin, createUser }
