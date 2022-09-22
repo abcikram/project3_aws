@@ -1,6 +1,6 @@
 const userModel = require("../models/userModel")
 const jwt = require("jsonwebtoken")
-const {isVAlidEmail,isValidPassword,isValidPhone,isValid} = require("../validator/validator")
+const { isVAlidEmail, isValidPassword, isValidPhone, isValid } = require("../validator/validator")
 
 const isValidreqbody = function (body) {
     return Object.keys(body).length > 0
@@ -10,14 +10,14 @@ const isValidreqbody = function (body) {
 
 
 const createUser = async function (req, res) {
-    try { 
+    try {
         let user = req.body
         if (Object.keys(user).length == 0) return res.status(400).send({ message: "Please provide data", error: "body can't be empty" })
 
-        let {title,name,phone,email,password} = user;
-        
+        let { title, name, phone, email, password } = user;
+
         if (!isValid(title)) return res.status(400).send({ status: false, message: "title is required" })
-        
+
         if (!["Mr", "Miss", "Mrs"].includes(title)) return res.status(400).send({ status: false, message: "title must be Mr ,Mrs ,Miss" })
 
         if (!isValid(name)) return res.status(400).send({ status: false, message: "Name is required , name must be string" })
@@ -25,7 +25,7 @@ const createUser = async function (req, res) {
         if (!isValid(phone)) return res.status(400).send({ status: false, message: "Phone number is required" })
         if (!isValidPhone(phone)) return res.status(400).send({ status: false, message: "Enter valid number, number must in ten digit" })
         let phones = await userModel.findOne({ phone: phone })
-        if (phones) return res.status(409).send({ status: false, message: "Phone number is already exists" }) 
+        if (phones) return res.status(409).send({ status: false, message: "Phone number is already exists" })
 
         if (!isValid(email)) return res.status(400).send({ status: false, message: "email is required" })
         if (!isVAlidEmail(email)) return res.status(400).send({ status: false, message: "Please provide the valid email address" })
@@ -65,7 +65,7 @@ const userLogin = async function (req, res) {
         let pass = await userModel.findOne({ password: password });
         if (!pass) return res.status(401).send({ status: false, message: "Password is not correct, Please provide valid password" });
 
-        let userid = await userModel.findOne({ email:email , password:password })
+        let userid = await userModel.findOne({ email: email, password: password })
 
         let token = jwt.sign(
             {
@@ -81,6 +81,4 @@ const userLogin = async function (req, res) {
         res.status(500).send({ status: false, Error: err.message });
     }
 }
-
-
 module.exports = { userLogin, createUser }
