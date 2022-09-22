@@ -3,7 +3,7 @@ const bookModel = require("../models/booksModel")
 const userModel = require("../models/userModel")
 const { isValidId, isValid, isValidIsbn } = require("../validator/validator")
 const mongoose = require('mongoose')
-const ObjectId =  mongoose.Types.ObjectId
+const ObjectId = mongoose.Types.ObjectId
 
 
 //________________________________________ Create Books _________________________________________________________//
@@ -73,8 +73,8 @@ const getBooksByQuery = async function (req, res) {
         let Query = req.query
 
         let getBook = await bookModel.find({ isDeleted: false })
-        .select({ title: 1, excerpt: 1, userId: 1, category: 1, reviews: 1, releasedAt: 1 })
-        .sort({ title: 1 })
+            .select({ title: 1, excerpt: 1, userId: 1, category: 1, reviews: 1, releasedAt: 1 })
+            .sort({ title: 1 })
 
         getBook.sort((a, b) => a.title.localeCompare(b.title))
 
@@ -89,8 +89,8 @@ const getBooksByQuery = async function (req, res) {
         }
 
         let getBooks = await bookModel.find({ $and: [Query, { isDeleted: false }] })
-        .select({ title: 1, excerpt: 1, userId: 1, category: 1, reviews: 1, releasedAt: 1 })
-        .sort({ title: 1 })
+            .select({ title: 1, excerpt: 1, userId: 1, category: 1, reviews: 1, releasedAt: 1 })
+            .sort({ title: 1 })
 
         getBooks.sort((a, b) => a.title.localeCompare(b.title))
 
@@ -133,19 +133,19 @@ const updateBooks = async function (req, res) {
         let books = req.params.bookId
         let bookdata = req.body
         let { title, excerpt, releasedAt, ISBN } = bookdata
-         
+
         if (Object.keys(bookdata).length == 0) return res.status(400).send({ status: false, message: "please provide some data" })
-        
-        let checkbook = await bookModel.findOne({ _id: books ,isDeleted : false})
+
+        let checkbook = await bookModel.findOne({ _id: books, isDeleted: false })
         if (!checkbook) {
             return res.status(404).send({ status: false, message: "Books are not found or bookid is not valid" })
         }
 
-        let Title=await bookModel.findOne({_id:books,title:title, isDeleted:false})
-         if(Title) return res.status(400).send({status:false,message:"given title already exit"})
-         let isbn=await bookModel.findOne({_id:books,ISBN:ISBN, isDeleted:false})
+        let Title = await bookModel.findOne({ _id: books, title: title, isDeleted: false })
+        if (Title) return res.status(400).send({ status: false, message: "given title already exit" })
+        let isbn = await bookModel.findOne({ _id: books, ISBN: ISBN, isDeleted: false })
 
-         if(isbn) return res.status(400).send({status:false,message:"given isbn Number already exit"})
+        if (isbn) return res.status(400).send({ status: false, message: "given isbn Number already exit" })
 
         let updatedata = await bookModel.findOneAndUpdate({ _id: books, isDeleted: false },
             { $set: { title: title, excerpt: excerpt, releasedAt: releasedAt, ISBN: ISBN } },
@@ -173,11 +173,11 @@ const deleteBooksId = async function (req, res) {
             return res.status(404).send({ status: false, message: "Book not found" })
         }
 
-        let deletebooks = await bookModel.findByIdAndUpdate( bookId 
-            ,{ isDeleted: true, deletedAt: Date.now() }
-            ,{new:true})
+        let deletebooks = await bookModel.findByIdAndUpdate(bookId
+            , { isDeleted: true, deletedAt: Date.now() }
+            , { new: true })
 
-        res.status(200).send({ status: true, message: 'Books is deleted successfully'})
+        res.status(200).send({ status: true, message: 'Books is deleted successfully' })
 
     }
     catch (err) {
@@ -188,4 +188,4 @@ const deleteBooksId = async function (req, res) {
 
 
 
-module.exports = { createBooks, getBooksByQuery, getBooksId,deleteBooksId, updateBooks}
+module.exports = { createBooks, getBooksByQuery, getBooksId, deleteBooksId, updateBooks }
