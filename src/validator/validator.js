@@ -38,5 +38,11 @@ const isValidIsbn = function (ISBN) {
     return (/^(?=(?:\D*\d){10}(?:(?:\D*\d){3})?$)[\d-]+$/).test(ISBN)
 }
 
+//------------------------------- releaseAt regex ----------------------------------------//
 
-module.exports = { isValid, isVAlidEmail, isValidPassword, isValidPhone, isValidIsbn, isValidId }
+const isValidrele = function (releaseAt){
+    return (/^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$/).test(releaseAt)
+}
+
+
+module.exports = { isValid, isVAlidEmail, isValidPassword, isValidPhone, isValidIsbn, isValidId,isValidrele }

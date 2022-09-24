@@ -1,9 +1,8 @@
-const booksModel = require("../models/booksModel")
 const bookModel = require("../models/booksModel")
 const userModel = require("../models/userModel")
-const { isValidId, isValid, isValidIsbn } = require("../validator/validator")
+const reviewModel = require("../models/reviewModel")
+const { isValidId, isValid, isValidIsbn,isValidrele } = require("../validator/validator")
 const mongoose = require('mongoose')
-
 const ObjectId = mongoose.Types.ObjectId
 
 
@@ -58,7 +57,8 @@ const createBooks = async function (req, res) {
         if (!isValid(subcategory)) return res.status(400).send({ status: false, message: "Subcategory is required ,Subcategory should be in string" })
 
         if (!isValid(releasedAt)) return res.status(400).send({ status: false, message: "ReleasedAt should required, releaseAt should be in Date" })
-
+        
+        if(!isValidrele(releasedAt)) return res.status(400).send({ status:false , message:"releaseAt should be (yyyy-mm-dd) format and enter valid month , day and year"})
 
         let bookcreate = await bookModel.create(req.body)
         res.status(201).send({ status: true, message: "Success", data: bookcreate })
@@ -68,7 +68,7 @@ const createBooks = async function (req, res) {
     }
 }
 
-//________________________________________ BooksByQuery _________________________________________________________//
+//________________________________________ Get BooksByQuery _________________________________________________________//
 
 
 const getBooksByQuery = async function (req, res) {
@@ -108,7 +108,8 @@ const getBooksByQuery = async function (req, res) {
     }
 }
 
-//_________________________________________ Books by param _____________________________________________________//
+//_________________________________________ Get Books by param _____________________________________________________//
+
 
 const getBooksId = async function (req, res) {
     try {
@@ -117,43 +118,71 @@ const getBooksId = async function (req, res) {
             return res.status(400).send({ status: false, message: "Enter valid book Id" })
         }
 
+        // finding bookdata by BookId 
         let books = await bookModel.findOne({ _id: bookId, isDeleted: false })
         if (!books) {
             return res.status(404).send({ status: false, message: "Book not found" })
         }
 
-        return res.status(200).send({ status: true, message: 'Books list', data: books })
+        // Returns a book with complete details including reviews
+        const review = await reviewModel.find({ bookId: bookId, isDeleted: false }).select({ _id: 1, bookId: 1, reviewedBy: 1, reviewedAt: 1, rating: 1, review: 1 })
+        let count = review.length
+        if (!review) {
+            return res.status(400).send({ status: false, message: "no review exists with this id" })
+        }
+
+        // merge reviewData key in book document
+        books._doc["reviewsData"] = review
+
+        // update counts of reviews 
+        books._doc["reviews"] = count
+
+        res.status(200).send({ status: true, message: 'Books list', data: books })
     }
     catch (err) {
-        return res.status(500).send({ status: false, message: "server Error", error: err.message })
+        return res.status(500).send({ status: false, message: "Server Error", error: err.message })
     }
 }
 
+
 //__________________________________________ Update Books _____________________________________________________//
+
 
 const updateBooks = async function (req, res) {
     try {
-        let books = req.params.bookId
+        let bookId = req.params.bookId
         let bookdata = req.body
+
+        //destructure of the req.body data :-
         let { title, excerpt, releasedAt, ISBN } = bookdata
-
-        if (Object.keys(bookdata).length == 0) return res.status(400).send({ status: false, message: "please provide some data" })
-
-        let checkbook = await bookModel.findOne({ _id: books, isDeleted: false })
+        
+        // req.body do not allow empty data :-
+        if (Object.keys(bookdata).length == 0) 
+        return res.status(400).send({ status: false, message: "please provide some data" })
+        
+        // finding the data from params bookId :-
+        let checkbook = await bookModel.findOne({ _id: bookId, isDeleted: false })
         if (!checkbook) {
             return res.status(404).send({ status: false, message: "Books are not found or bookid is not valid" })
         }
-
-        let Title = await bookModel.findOne({ _id: books, title: title, isDeleted: false })
+        
+        // In req.body checking Title name and ISBN number unique or not :- 
+        let Title = await bookModel.findOne({ title: title, isDeleted: false })
         if (Title) return res.status(400).send({ status: false, message: "given title already exit" })
-        let isbn = await bookModel.findOne({ _id: books, ISBN: ISBN, isDeleted: false })
-
+        let isbn = await bookModel.findOne({ ISBN: ISBN, isDeleted: false })
         if (isbn) return res.status(400).send({ status: false, message: "given isbn Number already exit" })
-
-        let updatedata = await bookModel.findOneAndUpdate({ _id: books, isDeleted: false },
+        
+        // validate of req.body release date:-
+        if(!isValidrele(releasedAt)) 
+          return res.status(400).send({ status:false ,
+          message:"releaseAt should be (yyyy-mm-dd) format and enter valid month , day and year"})
+        
+        // update the book :-
+        let updatedata = await bookModel.findOneAndUpdate({ _id: bookId, isDeleted: false },
             { $set: { title: title, excerpt: excerpt, releasedAt: releasedAt, ISBN: ISBN } },
             { new: true })
-
+        
+        // In the reaponse we are send the updating book data :-
         return res.status(200).send({ status: true, message: "Success", data: updatedata })
 
     } catch (err) {
@@ -163,6 +192,7 @@ const updateBooks = async function (req, res) {
 
 
 //__________________________________ delete by params _______________________________________________________//
+
 
 const deleteBooksId = async function (req, res) {
     try {
@@ -184,7 +214,13 @@ const deleteBooksId = async function (req, res) {
 
     }
     catch (err) {
-        return res.status(500).send({ status: false, message: "server Error", error: err.message })
+        return res.status(500).send({ status: false, message: "Server Error", error: err.message })
     }
 }
+
+
+
+//___________________________________ Exports the module _________________________________________________//
+
 module.exports = { createBooks, getBooksByQuery, getBooksId, deleteBooksId, updateBooks }
+

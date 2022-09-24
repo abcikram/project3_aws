@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken')
-const { invalid } = require('moment/moment')
+const { isValidId } = require("../validator/validator")
 const bookModel = require('../models/booksModel')
 
 
@@ -30,6 +30,11 @@ const Authorization = async (req, res, next) => {
         if (!token) return res.status(400).send({ status: false, msg: "Header must be present !" })
 
         let bookid = req.params.bookId
+        
+        if (!isValidId(bookid)) {
+            return res.status(400).send({ status: false, message: "Enter valid book Id" })
+        }
+
         let book = await bookModel.findOne({ _id: bookid, isDeleted: false })
         if (!book) return res.status(404).send({ status: false, message: "Book not found" })
         let userId = book.userId
