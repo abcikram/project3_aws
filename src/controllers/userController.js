@@ -29,7 +29,6 @@ const createUser = async function (req, res) {
         // validation for phone number:-
         if (!isValidPhone(phone)) return res.status(400).send({ status: false, message: "Enter valid number, number must in ten digit" })
         
-        
         //  db call for checking duplicate number exists :-
         let phones = await userModel.findOne({ phone: phone })
         if (phones) return res.status(409).send({ status: false, message: "Phone number is already exists" })
