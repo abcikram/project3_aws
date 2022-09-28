@@ -5,62 +5,109 @@ const { isValidId, isValid, isValidIsbn,isValidrele } = require("../validator/va
 const mongoose = require('mongoose')
 const ObjectId = mongoose.Types.ObjectId
 
+const aws= require("aws-sdk")
+// s3 and cloud stodare
+//  step1: multer will be used to get access to the file in nodejs( from previous session learnings)
+//  step2:[BEST PRACTISE]:- always write s2 upload function separately- in a separate file/function..exptect it to take file as input and return the uploaded file as output
+// step3: aws-sdk install - as package
+// step4: Setupconfig for aws authenticcation- use code below as plugin keys that are given to you
+//  step5: build the uploadFile funciton for uploading file- use code below and edit what is marked HERE only
 
 
+//PROMISES:-
+// -you can never use await on callback..if you awaited something , then you can be sure it is within a promise
+// -how to write promise:- wrap your entire code inside: "return new Promise( function(resolve, reject) { "...and when error - return reject( err )..else when all ok and you have data, return resolve (data)
 
+aws.config.update({
+    accessKeyId: "AKIAY3L35MCRZNIRGT6N",
+    secretAccessKey: "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",
+    region: "ap-south-1"
+})
+
+let uploadFile= async ( file) =>{
+   return new Promise( function(resolve, reject) {
+    // this function will upload file to aws and return the link
+    let s3= new aws.S3({apiVersion: '2006-03-01'}); // we will be using the s3 service of aws
+
+    var uploadParams= {
+        ACL: "public-read",
+        Bucket: "classroom-training-bucket",  //HERE
+        Key: "abc/" + file.originalname, //HERE 
+        Body: file.buffer
+    }
+
+    s3.upload( uploadParams, function (err, data ){
+        if(err) {
+            return reject({"error": err})
+        }
+        console.log(data)
+        console.log("file uploaded succesfully")
+        return resolve(data.Location)
+    })
+
+    // let data= await s3.upload( uploadParams)
+    // if( data) return data.Location
+    // else return "there is an error"
+
+   })
+}
 //________________________________________ Create Books _________________________________________________________//
-
 
 const createBooks = async function (req, res) {
     try {
         //________________________________ request body using data _______________________________//
-        books = req.body
-        let { title, excerpt, userId, ISBN, category, subcategory, releasedAt } = books
-
-        if (Object.keys(books).length == 0) return res.status(400).send({ message: "please provide some data", error: "data can't be empty" })
-
+        data = req.body.data
+        if(!data) return res.status(400).send({status: false, message: "Enter data"})
+        let file = req.files
+        let books = JSON.parse(data)
+    
         //___________________________________ title validation ____________________________________//
 
-        if (!isValid(title)) return res.status(400).send({ status: false, message: "Title is required ,title should be in string" })
+        if (!isValid(books.title)) return res.status(400).send({ status: false, message: "Title is required ,title should be in string" })
 
         //____________________________ valiation for dublicate title or not ________________________// 
 
-        let validtitle = await bookModel.findOne({ title: title })
+        let validtitle = await bookModel.findOne({ title: books.title })
         if (validtitle) return res.status(400).send({ status: false, message: "Title is already exists" })
 
         //______________________________ validation for excerpt ___________________________________//
 
-        if (!isValid(excerpt)) return res.status(400).send({ status: false, message: "Excerpt is required ,excerpt should be in string" })
+        if (!isValid(books.excerpt)) return res.status(400).send({ status: false, message: "Excerpt is required ,excerpt should be in string" })
 
         //______________________________ validation for userId ___________________________________//
 
-        if (!userId) return res.status(400).send({ status: false, message: "userId is required" })
+        if (!books.userId) return res.status(400).send({ status: false, message: "userId is required" })
+        if(req.userId != books.userId) return res.status(403).send({status: false, message: "You are unauthorize person!!"})
+
         //_______________________________ check user regex _______________________________________//
 
-        if (!isValidId(userId)) return res.status(400).send({ status: false, message: "enter valid user id" })
+        if (!isValidId(books.userId)) return res.status(400).send({ status: false, message: "enter valid user id" })
 
         //_______________________________ dublicate userId or not ________________________________//
 
-        let checkuserId = await userModel.findById(userId)
+        let checkuserId = await userModel.findById(books.userId)
         if (!checkuserId) return res.status(404).send({ status: false, message: "User is not found" })
 
         //________________________________ validation for ISBN _________________________________//
-        if (!isValid(ISBN)) return res.status(400).send({ status: false, message: "ISBN is required ,ISBN should be in string" })
-        if (!isValidIsbn(ISBN)) return res.status(400).send({ status: false, message: "ISBN is not valid" })
-        let validISBN = await bookModel.findOne({ ISBN: ISBN })
+        if (!isValid(books.ISBN)) return res.status(400).send({ status: false, message: "ISBN is required ,ISBN should be in string" })
+        if (!isValidIsbn(books.ISBN)) return res.status(400).send({ status: false, message: "ISBN is not valid" })
+        let validISBN = await bookModel.findOne({ ISBN: books.ISBN })
         if (validISBN) return res.status(400).send({ status: false, message: "ISBN is already exists" })
 
         //____________________validation for catagory,subcatagory and releaseAt_________________//
 
-        if (!isValid(category)) return res.status(400).send({ status: false, message: "category is required ,category should be in string" })
+        if (!isValid(books.category)) return res.status(400).send({ status: false, message: "category is required ,category should be in string" })
 
-        if (!isValid(subcategory)) return res.status(400).send({ status: false, message: "Subcategory is required ,Subcategory should be in string" })
+        if (!isValid(books.subcategory)) return res.status(400).send({ status: false, message: "Subcategory is required ,Subcategory should be in string" })
 
-        if (!isValid(releasedAt)) return res.status(400).send({ status: false, message: "ReleasedAt should required, releaseAt should be in Date" })
+        if (!isValid(books.releasedAt)) return res.status(400).send({ status: false, message: "ReleasedAt should required, releaseAt should be in Date" })
         
-        if(!isValidrele(releasedAt)) return res.status(400).send({ status:false , message:"releaseAt should be (yyyy-mm-dd) format and enter valid month , day and year"})
+        if(!isValidrele(books.releasedAt)) return res.status(400).send({ status:false , message:"releaseAt should be (yyyy-mm-dd) format and enter valid month , day and year"})
 
-        let bookcreate = await bookModel.create(req.body)
+        let url = await uploadFile(file[0])
+        books["bookCover"] = url
+    
+        let bookcreate = await bookModel.create(books)
         res.status(201).send({ status: true, message: "Success", data: bookcreate })
 
     } catch (err) {
